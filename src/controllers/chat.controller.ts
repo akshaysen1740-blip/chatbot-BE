@@ -1,9 +1,100 @@
 import axios from "axios";
 import { Request, Response } from "express";
+import { env } from "../config/env";
 
-export const chatController = async (req: Request, res: Response) => {
-  const api_url = process.env.OPENROUTER_API_URL!;
-  const api_key = process.env.OPENROUTER_API_KEY!;
+type IncomingMessage = {
+  role: string;
+  content?: string;
+  message?: string;
+};
+
+type ChatApiMessage = {
+  role: string;
+  content: string;
+};
+
+type ChatRequestBody = {
+  messages?: IncomingMessage[];
+};
+
+function normalizeIncomingMessage(
+  message: IncomingMessage,
+): ChatApiMessage | null {
+  const content = message.content ?? message.message;
+
+  if (!message.role || !content) {
+    return null;
+  }
+
+  return {
+    role: message.role,
+    content,
+  };
+}
+
+function getRecentMessages(messages: ChatApiMessage[]): ChatApiMessage[] {
+  return messages.slice(-10);
+}
+
+const systemPrompts = [
+  `ts
+    const systemPrompt = {
+      role: "system",
+      content: 
+    You are a JSON generator.
+
+    Return ONLY valid JSON.
+
+    Do not wrap in markdown.
+    Do not explain.
+    Do not add any extra text.
+
+    Format:
+    {
+      "role": "user",
+      "content": "Summary of earlier conversation"
+    }
+    `
+];
+
+async function summarizeMessages(
+  messages: ChatApiMessage[],
+): Promise<ChatApiMessage> {
+  const messagesForSummary = messages.slice(20);
+  console.log(messagesForSummary, "summary");
+  const systemPrompt = {
+    role: "system",
+    content: systemPrompts[0],
+  };
+  const conversationSummary = await axios.post(
+    env.openRouterApiUrl,
+    {
+      model: "openrouter/owl-alpha",
+      messages: [systemPrompt, ...messagesForSummary],
+    },
+    {
+      headers: {
+        Authorization: `Bearer ${env.openRouterApiKey}`,
+        "Content-Type": "application/json",
+      },
+    },
+  );
+
+  console.log(conversationSummary.data.choices[0].message.content, "summary");
+  const summary = JSON.parse(
+    conversationSummary.data.choices[0].message.content,
+  );
+
+  return {
+    role: "user",
+    content: summary,
+  };
+}
+
+export const chatController = async (
+  req: Request<unknown, unknown, ChatRequestBody>,
+  res: Response,
+): Promise<Response | void> => {
   const rawMessages = req.body?.messages;
 
   if (!Array.isArray(rawMessages) || rawMessages.length === 0) {
@@ -12,44 +103,46 @@ export const chatController = async (req: Request, res: Response) => {
     });
   }
   try {
-    const messages = rawMessages.map((message: IncomingMessage, index: number) => {
-      const content = message.content ?? message.message;
+    const normalizedMessages = rawMessages.map(normalizeIncomingMessage);
 
-      if (!message.role || !content) {
-        return null;
-      }
-
-      return {
-        role: message.role,
-        content,
-      };
-    });
-
-    if (messages.some((message) => message === null)) {
+    if (normalizedMessages.some((message) => message === null)) {
       return res.status(400).json({
         error: "Each message must include role and content or message",
       });
     }
 
-    console.log(messages, "messages");
+    let messages = normalizedMessages.filter(
+      (message): message is ChatApiMessage => message !== null,
+    );
 
+    // messageSummarization
     const systemPrompt = {
       role: "system",
       content: `
         You are a helpful assistant.
         `,
     };
+
+    const conversationMessages =
+      messages.length > 20
+        ? [
+            systemPrompt,
+            await summarizeMessages(messages),
+            ...messages.slice(20),
+          ]
+        : [systemPrompt, ...messages];
+
     const response = await axios.post(
-      api_url,
+      env.openRouterApiUrl,
       {
         model: "openrouter/owl-alpha",
         temperature: 1.0,
         max_tokens: 200,
-        messages: [systemPrompt, ...messages],
+        messages: conversationMessages,
       },
       {
         headers: {
-          Authorization: `Bearer ${api_key}`,
+          Authorization: `Bearer ${env.openRouterApiKey}`,
           "Content-Type": "application/json",
         },
       },
@@ -62,19 +155,8 @@ export const chatController = async (req: Request, res: Response) => {
     console.log(details);
 
     res.status(error.response?.status || 500).json({
-      error: "Something  wrong",
+      error: "Something went wrong",
       details,
     });
   }
-};
-
-type IncomingMessage = {
-  role: string;
-  content?: string;
-  message?: string;
-};
-
-type Messages = {
-  role: string;
-  content: string;
 };

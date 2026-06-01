@@ -1,15 +1,12 @@
 import express from "express";
-import dotenv from "dotenv";
 import cors from "cors";
 import chatRoutes from "./routes/chatbot.routes";
-
-dotenv.config();
 
 const app = express();
 
 app.use(
   cors({
-    origin: "http://localhost:5174",
+    origin: ["http://localhost:5174", "https://mybot-green-rho.vercel.app"],
   }),
 );
 app.use(express.json());
