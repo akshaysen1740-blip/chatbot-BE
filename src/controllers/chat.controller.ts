@@ -69,12 +69,12 @@ async function summarizeMessages(
   const conversationSummary = await axios.post(
     env.openRouterApiUrl,
     {
-      model: "openrouter/owl-alpha",
+      model: "google/gemma-4-26b-a4b-it:free",
       messages: [systemPrompt, ...messagesForSummary],
     },
     {
       headers: {
-        Authorization: `Bearer ${env.openRouterApiKey}`,
+        Authorization: `Bearer ${env.geminiApiKey}`,
         "Content-Type": "application/json",
       },
     },
@@ -135,14 +135,14 @@ export const chatController = async (
     const response = await axios.post(
       env.openRouterApiUrl,
       {
-        model: "openrouter/owl-alpha",
+        model: "google/gemma-4-26b-a4b-it:free",
         temperature: 1.0,
         max_tokens: 200,
         messages: conversationMessages,
       },
       {
         headers: {
-          Authorization: `Bearer ${env.openRouterApiKey}`,
+          Authorization: `Bearer ${env.geminiApiKey}`,
           "Content-Type": "application/json",
         },
       },

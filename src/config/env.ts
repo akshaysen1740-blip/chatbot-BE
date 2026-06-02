@@ -12,5 +12,5 @@ function getRequiredEnv(name: string): string {
 
 export const env = {
   openRouterApiUrl: getRequiredEnv("OPENROUTER_API_URL"),
-  openRouterApiKey: getRequiredEnv("OPENROUTER_API_KEY"),
+  geminiApiKey: getRequiredEnv("OPENROUTER_API_KEY"),
 };
