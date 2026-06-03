@@ -1,4 +1,4 @@
-import axios from "axios";
+import { GoogleGenAI } from "@google/genai";
 import { Request, Response } from "express";
 import { env } from "../config/env";
 
@@ -9,20 +9,33 @@ type IncomingMessage = {
 };
 
 type ChatApiMessage = {
-  role: string;
+  role: "user" | "assistant";
   content: string;
+};
+
+type GeminiMessage = {
+  role: "user" | "model";
+  parts: Array<{
+    text: string;
+  }>;
 };
 
 type ChatRequestBody = {
   messages?: IncomingMessage[];
 };
 
+const ai = new GoogleGenAI({ apiKey: env.geminiApiKey });
+
 function normalizeIncomingMessage(
   message: IncomingMessage,
 ): ChatApiMessage | null {
-  const content = message.content ?? message.message;
+  const content = (message.content ?? message.message)?.trim();
 
   if (!message.role || !content) {
+    return null;
+  }
+
+  if (message.role !== "user" && message.role !== "assistant") {
     return null;
   }
 
@@ -32,62 +45,62 @@ function normalizeIncomingMessage(
   };
 }
 
-function getRecentMessages(messages: ChatApiMessage[]): ChatApiMessage[] {
-  return messages.slice(-10);
+function toGeminiRole(role: string): "user" | "model" {
+  return role === "assistant" ? "model" : "user";
 }
 
-const systemPrompts = [
-  `ts
-    const systemPrompt = {
-      role: "system",
-      content: 
-    You are a JSON generator.
+function toGeminiMessages(messages: ChatApiMessage[]): GeminiMessage[] {
+  return messages.map((message) => ({
+    role: toGeminiRole(message.role),
+    parts: [{ text: message.content }],
+  }));
+}
 
-    Return ONLY valid JSON.
+const assistantSystemInstruction = "You are a helpful assistant.";
 
-    Do not wrap in markdown.
-    Do not explain.
-    Do not add any extra text.
-
-    Format:
-    {
-      "role": "user",
-      "content": "Summary of earlier conversation"
-    }
-    `
-];
+const summarySystemInstruction = `
+You summarize earlier conversation turns for continued context.
+Return only valid JSON with this exact shape:
+{
+  "role": "user",
+  "content": "Concise summary of the earlier conversation"
+}
+Do not wrap the JSON in markdown and do not add extra text.
+`;
 
 async function summarizeMessages(
   messages: ChatApiMessage[],
 ): Promise<ChatApiMessage> {
-  const messagesForSummary = messages.slice(20);
-  console.log(messagesForSummary, "summary");
-  const systemPrompt = {
-    role: "system",
-    content: systemPrompts[0],
-  };
-  const conversationSummary = await axios.post(
-    env.openRouterApiUrl,
-    {
-      model: "google/gemma-4-26b-a4b-it:free",
-      messages: [systemPrompt, ...messagesForSummary],
-    },
-    {
-      headers: {
-        Authorization: `Bearer ${env.geminiApiKey}`,
-        "Content-Type": "application/json",
+  const messagesForSummary = messages.slice(0, -10);
+  const conversationSummary = await ai.models.generateContent({
+    model: env.geminiModel,
+    contents: toGeminiMessages(messagesForSummary),
+    config: {
+      systemInstruction: summarySystemInstruction,
+      temperature: 0.2,
+      maxOutputTokens: 200,
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: "object",
+        properties: {
+          role: { type: "string" },
+          content: { type: "string" },
+        },
+        required: ["role", "content"],
       },
     },
-  );
+  });
 
-  console.log(conversationSummary.data.choices[0].message.content, "summary");
-  const summary = JSON.parse(
-    conversationSummary.data.choices[0].message.content,
-  );
+  const summaryText = conversationSummary.text;
+  if (!summaryText) {
+    throw new Error("Gemini returned an empty summary response");
+  }
+
+  const summary = JSON.parse(summaryText) as ChatApiMessage;
 
   return {
-    role: "user",
-    content: summary,
+    role: summary.role || "user",
+    content: summary.content,
   };
 }
 
@@ -104,57 +117,68 @@ export const chatController = async (
   }
   try {
     const normalizedMessages = rawMessages.map(normalizeIncomingMessage);
+    const invalidMessages = normalizedMessages.filter(
+      (message) => message === null,
+    ).length;
 
-    if (normalizedMessages.some((message) => message === null)) {
+    if (invalidMessages === rawMessages.length) {
       return res.status(400).json({
-        error: "Each message must include role and content or message",
+        error:
+          "Each message must include a user or assistant role and content or message",
       });
     }
 
-    let messages = normalizedMessages.filter(
+    const messages = normalizedMessages.filter(
       (message): message is ChatApiMessage => message !== null,
     );
 
-    // messageSummarization
-    const systemPrompt = {
-      role: "system",
-      content: `
-        You are a helpful assistant.
-        `,
-    };
+    if (messages.length === 0) {
+      return res.status(400).json({
+        error: "No valid user or assistant messages were provided",
+      });
+    }
 
     const conversationMessages =
       messages.length > 20
-        ? [
-            systemPrompt,
-            await summarizeMessages(messages),
-            ...messages.slice(20),
-          ]
-        : [systemPrompt, ...messages];
+        ? [await summarizeMessages(messages), ...messages.slice(-10)]
+        : messages;
 
-    const response = await axios.post(
-      env.openRouterApiUrl,
-      {
-        model: "google/gemma-4-26b-a4b-it:free",
-        temperature: 1.0,
-        max_tokens: 200,
-        messages: conversationMessages,
+    console.log(conversationMessages);
+
+    const response = await ai.models.generateContent({
+      model: env.geminiModel,
+      contents: toGeminiMessages(conversationMessages),
+      config: {
+        temperature: 0.9,
+        systemInstruction: assistantSystemInstruction,
+        maxOutputTokens: 1024,
       },
-      {
-        headers: {
-          Authorization: `Bearer ${env.geminiApiKey}`,
-          "Content-Type": "application/json",
+    });
+
+    const text = response.text;
+    if (!text) {
+      throw new Error("Gemini returned an empty chat response");
+    }
+
+    res.json({
+      message: {
+        role: "assistant",
+        content: text,
+      },
+      choices: [
+        {
+          message: {
+            role: "assistant",
+            content: text,
+          },
         },
-      },
-    );
-    // const formatedRes = JSON.parse(response.data.choices[0].message.content);
-    // console.log(formatedRes)
-    res.json(response.data.choices[0]);
+      ],
+    });
   } catch (error: any) {
-    const details = error.response?.data || error.message;
+    const details = error?.message || error;
     console.log(details);
 
-    res.status(error.response?.status || 500).json({
+    res.status(500).json({
       error: "Something went wrong",
       details,
     });

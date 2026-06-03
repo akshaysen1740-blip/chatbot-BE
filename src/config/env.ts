@@ -10,7 +10,14 @@ function getRequiredEnv(name: string): string {
   return value;
 }
 
+function getEnv(name: string): string | undefined {
+  return process.env[name];
+}
+
 export const env = {
-  openRouterApiUrl: getRequiredEnv("OPENROUTER_API_URL"),
-  geminiApiKey: getRequiredEnv("OPENROUTER_API_KEY"),
+  geminiApiKey:
+    getEnv("GEMINI_API_KEY") ??
+    getEnv("GOOGLE_API_KEY") ??
+    getRequiredEnv("OPENROUTER_API_KEY"),
+  geminiModel: getEnv("GEMINI_MODEL") ?? "gemini-2.5-flash",
 };
