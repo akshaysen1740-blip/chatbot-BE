@@ -1,28 +1,7 @@
 import { GoogleGenAI } from "@google/genai";
 import { Request, Response } from "express";
 import { env } from "../config/env";
-
-type IncomingMessage = {
-  role: string;
-  content?: string;
-  message?: string;
-};
-
-type ChatApiMessage = {
-  role: "user" | "assistant";
-  content: string;
-};
-
-type GeminiMessage = {
-  role: "user" | "model";
-  parts: Array<{
-    text: string;
-  }>;
-};
-
-type ChatRequestBody = {
-  messages?: IncomingMessage[];
-};
+import { ChatApiMessage, ChatRequestBody, GeminiMessage, IncomingMessage } from "../types/chat.types";
 
 const ai = new GoogleGenAI({ apiKey: env.geminiApiKey });
 
@@ -104,7 +83,7 @@ async function summarizeMessages(
   };
 }
 
-export const chatController = async (
+export const chat = async (
   req: Request<unknown, unknown, ChatRequestBody>,
   res: Response,
 ): Promise<Response | void> => {
