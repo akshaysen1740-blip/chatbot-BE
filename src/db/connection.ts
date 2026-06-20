@@ -1,3 +1,6 @@
+import "dotenv/config";
+import { readFile } from "fs/promises";
+import path from "path";
 import { Pool } from "pg";
 import pgvector from "pgvector/pg";
 
@@ -13,6 +16,10 @@ export const initializeDatabase = async () => {
   const client = await pool.connect();
 
   try {
+    const schemaPath = path.join(__dirname, "schema.sql");
+    const schemaSql = await readFile(schemaPath, "utf8");
+
+    await client.query(schemaSql);
     await pgvector.registerTypes(client);
     console.log("PostgreSQL connected and pgvector initialized");
   } catch (error) {
