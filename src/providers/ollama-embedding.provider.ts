@@ -4,6 +4,10 @@ export class OllamaEmbeddingProvider {
   private readonly baseUrl = "http://localhost:11434";
 
   async embed(text: string): Promise<number[]> {
+    if (!text.trim()) {
+      throw new Error("Cannot generate an embedding for an empty query");
+    }
+
     const response = await fetch(
       `${this.baseUrl}/api/embeddings`,
       {
@@ -18,7 +22,17 @@ export class OllamaEmbeddingProvider {
       }
     );
 
+    if (!response.ok) {
+      const details = await response.text();
+      throw new Error(
+        `Ollama embedding request failed with ${response.status}: ${details}`
+      );
+    }
+
     const data = await response.json();
+    if (!Array.isArray(data.embedding)) {
+      throw new Error("Ollama did not return a valid embedding array");
+    }
 
     return data.embedding;
   }

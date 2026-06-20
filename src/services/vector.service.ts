@@ -1,10 +1,7 @@
 import { randomUUID } from "crypto";
 
-import {
-  insertChunk,
-  searchSimilarChunks,
-  ChunkData,
-} from "../db/vector";
+import { insertChunk, searchSimilarChunks, ChunkData } from "../db/vector";
+import { OllamaEmbeddingProvider } from "../providers/ollama-embedding.provider";
 
 export interface StoreChunkInput {
   documentId: string;
@@ -43,11 +40,11 @@ export class VectorService {
   /**
    * Search for semantically similar chunks.
    */
-  async search(
-    queryEmbedding: number[],
-    limit: number = 5
-  ) {
-    return await searchSimilarChunks(queryEmbedding, limit);
+  async search(query: string, limit = 5) {
+    const provider = new OllamaEmbeddingProvider();
+    const queryEmbedding = await provider.embed(query);
+
+    return searchSimilarChunks(queryEmbedding, limit);
   }
 }
 
