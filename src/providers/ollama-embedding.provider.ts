@@ -1,7 +1,7 @@
 // providers/ollama-embedding.provider.ts
 
 export class OllamaEmbeddingProvider {
-  private readonly baseUrl = "http://localhost:11434";
+  private readonly baseUrl = process.env.OLLAMA_URL || "http://localhost:11434";
 
   async embed(text: string): Promise<number[]> {
     if (!text.trim()) {

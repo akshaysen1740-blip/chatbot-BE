@@ -1,13 +1,6 @@
-import { GoogleGenAI } from "@google/genai";
 import { Request, Response } from "express";
-import { env } from "../config/env";
-import {
-  ChatApiMessage,
-  ChatRequestBody,
-  GeminiMessage,
-  IncomingMessage,
-} from "../types/chat.types";
 import { chatService } from "../services/chat.service";
+import { ChatRequestBody } from "../types/chat.types";
 
 export const chat = async (
   req: Request<unknown, unknown, ChatRequestBody>,

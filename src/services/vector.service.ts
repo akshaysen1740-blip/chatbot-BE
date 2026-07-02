@@ -2,6 +2,7 @@ import { randomUUID } from "crypto";
 
 import { insertChunk, searchSimilarChunks, ChunkData } from "../db/vector";
 import { OllamaEmbeddingProvider } from "../providers/ollama-embedding.provider";
+import aiClient from "../config/gemini.client";
 
 export interface StoreChunkInput {
   documentId: string;
@@ -41,10 +42,31 @@ export class VectorService {
    * Search for semantically similar chunks.
    */
   async search(query: string, limit = 5) {
-    const provider = new OllamaEmbeddingProvider();
-    const queryEmbedding = await provider.embed(query);
+    try {
+      // const provider = new OllamaEmbeddingProvider();
+      // const queryEmbedding = await provider.embed(query);
 
-    return searchSimilarChunks(queryEmbedding, limit);
+      const response = await aiClient.models.embedContent({
+        model: "gemini-embedding-001",
+        contents: query,
+        config: {
+          outputDimensionality: 768,
+        },
+      });
+
+      console.log("response", response.embeddings);
+      return searchSimilarChunks(
+        response.embeddings
+          ? response.embeddings[0].values
+            ? response.embeddings[0].values
+            : []
+          : [],
+        limit,
+      );
+    } catch (error: any) {
+      console.error(error);
+      return [];
+    }
   }
 }
 

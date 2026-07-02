@@ -7,10 +7,9 @@ import {
   GeminiMessage,
   IncomingMessage,
 } from "../types/chat.types";
+import aiClient from "../config/gemini.client";
 
-const ai = new GoogleGenAI({
-  apiKey: env.geminiApiKey,
-});
+
 
 const SUMMARY_SYSTEM_INSTRUCTION = `You summarize earlier conversation turns for continued context.
 Return only valid JSON with this exact shape:
@@ -74,7 +73,7 @@ class ChatService {
   ): Promise<ChatApiMessage> {
     const messagesForSummary = messages.slice(0, -10);
 
-    const response = await ai.models.generateContent({
+    const response = await aiClient.models.generateContent({
       model: env.geminiModel,
       contents: this.toGeminiMessages(messagesForSummary),
       config: {
@@ -147,7 +146,7 @@ class ChatService {
 
     const context = chunks.map((chunk) => chunk.content).join("\n\n");
 
-    const response = await ai.models.generateContent({
+    const response = await aiClient.models.generateContent({
       model: env.geminiModel,
       contents: this.toGeminiMessages(conversationMessages),
       config: {
