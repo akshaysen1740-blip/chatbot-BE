@@ -1,6 +1,11 @@
 import "dotenv/config";
 import OpenAI from "openai";
 import { OllamaEmbeddingProvider } from "../providers/ollama-embedding.provider";
+import aiClient from "../config/gemini.client";
+import {
+  generateEmbeddingsGemini,
+  generateEmbeddingsGeminiMultiple,
+} from "../providers/geminiEmbeddingProvider";
 
 let openaiClient: OpenAI | null = null;
 
@@ -46,11 +51,11 @@ export async function generateEmbedding(text: string): Promise<number[]> {
  */
 export async function generateEmbeddings(texts: string[]): Promise<number[][]> {
   try {
-    const provider = new OllamaEmbeddingProvider();
-    const embedding = await provider.embedMany(texts);
-
-    console.log("embedding", embedding);
-    return embedding;
+    // const provider = new OllamaEmbeddingProvider();
+    // const embedding = await provider.embedMany(texts);
+    const embeddings = generateEmbeddingsGeminiMultiple(texts);
+    console.log("embedding", embeddings);
+    return embeddings;
   } catch (error) {
     console.error("Failed to generate embeddings:", error);
     throw new Error("Batch embedding generation failed.");

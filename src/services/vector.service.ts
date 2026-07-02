@@ -3,6 +3,8 @@ import { randomUUID } from "crypto";
 import { insertChunk, searchSimilarChunks, ChunkData } from "../db/vector";
 import { OllamaEmbeddingProvider } from "../providers/ollama-embedding.provider";
 import aiClient from "../config/gemini.client";
+import { generateEmbeddings } from "./embedding.service";
+import { generateEmbeddingsGemini } from "../providers/geminiEmbeddingProvider";
 
 export interface StoreChunkInput {
   documentId: string;
@@ -46,23 +48,9 @@ export class VectorService {
       // const provider = new OllamaEmbeddingProvider();
       // const queryEmbedding = await provider.embed(query);
 
-      const response = await aiClient.models.embedContent({
-        model: "gemini-embedding-001",
-        contents: query,
-        config: {
-          outputDimensionality: 768,
-        },
-      });
+      const embeddings = await generateEmbeddingsGemini(query);
 
-      console.log("response", response.embeddings);
-      return searchSimilarChunks(
-        response.embeddings
-          ? response.embeddings[0].values
-            ? response.embeddings[0].values
-            : []
-          : [],
-        limit,
-      );
+      return searchSimilarChunks(embeddings, limit);
     } catch (error: any) {
       console.error(error);
       return [];
