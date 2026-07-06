@@ -1,4 +1,3 @@
-import { GoogleGenAI } from "@google/genai";
 import { env } from "../config/env";
 import {
   ChatApiMessage,
@@ -9,18 +8,12 @@ import {
 import aiClient from "../config/gemini.client";
 import { vectorService } from "../services/vector.service";
 import { Tool } from "./tools.interface";
+import { buildRagPrompt, getSummarPrompt } from "../prompts/system.prompts";
 
-const SUMMARY_SYSTEM_INSTRUCTION = `You summarize earlier conversation turns for continued context.
-Return only valid JSON with this exact shape:
-{
-  "role": "user",
-  "content": "Concise summary of the earlier conversation"
-}
-Do not wrap the JSON in markdown and do not add extra text.`;
 
 class RagTool implements Tool {
-  name: string = "";
-  description: string = "";
+  name: string = "Rag";
+  description: string = "Fo Rag services";
 
   async execute(body: any): Promise<any> {
     const rawMessages = body?.messages;
@@ -62,7 +55,7 @@ class RagTool implements Tool {
       model: env.geminiModel,
       contents: this.toGeminiMessages(conversationMessages),
       config: {
-        systemInstruction: this.buildRagPrompt(context),
+        systemInstruction: buildRagPrompt(context),
         temperature: 0.9,
         maxOutputTokens: 1024,
       },
@@ -120,19 +113,7 @@ class RagTool implements Tool {
     }));
   }
 
-  private buildRagPrompt(context: string): string {
-    return `
-    You are a helpful assistant.
 
-    Answer ONLY from the provided context.
-
-    If the answer is not present in the context,
-    say "I could not find that information."
-
-    Context:
-    ${context}
-    `;
-  }
 
   private async summarizeMessages(
     messages: ChatApiMessage[],
@@ -143,7 +124,7 @@ class RagTool implements Tool {
       model: env.geminiModel,
       contents: this.toGeminiMessages(messagesForSummary),
       config: {
-        systemInstruction: SUMMARY_SYSTEM_INSTRUCTION,
+        systemInstruction: getSummarPrompt(),
         temperature: 0.2,
         maxOutputTokens: 200,
         responseMimeType: "application/json",
