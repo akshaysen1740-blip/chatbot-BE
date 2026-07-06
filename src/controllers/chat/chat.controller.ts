@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
-import { chatService } from "../services/chat.service";
-import { ChatRequestBody } from "../types/chat.types";
+import { ChatRequestBody } from "../../types/chat.types";
+import { chatService } from "../../services/chat.service";
 
 export const chat = async (
   req: Request<unknown, unknown, ChatRequestBody>,
@@ -8,7 +8,6 @@ export const chat = async (
 ): Promise<Response | void> => {
   try {
     const result = await chatService.chat(req.body);
-
     return res.json(result);
   } catch (error: any) {
     const details = error?.message || error;

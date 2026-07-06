@@ -17,5 +17,13 @@ export type GeminiMessage = {
 };
 
 export type ChatRequestBody = {
-  messages?: IncomingMessage[];
+  messages: IncomingMessage[];
 };
+
+export interface ExecutionPlan {
+  requiresTool: boolean;
+
+  toolName?: string;
+
+  input?: unknown;
+}

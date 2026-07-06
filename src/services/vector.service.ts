@@ -1,9 +1,6 @@
 import { randomUUID } from "crypto";
 
 import { insertChunk, searchSimilarChunks, ChunkData } from "../db/vector";
-import { OllamaEmbeddingProvider } from "../providers/ollama-embedding.provider";
-import aiClient from "../config/gemini.client";
-import { generateEmbeddings } from "./embedding.service";
 import { generateEmbeddingsGemini } from "../providers/geminiEmbeddingProvider";
 
 export interface StoreChunkInput {
