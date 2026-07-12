@@ -36,13 +36,15 @@ async function genralPurposeResponse(body: ChatRequestBody): Promise<ChatApiMess
       systemInstruction: "You are a helpful assistant.",
       temperature: 0.2,
       maxOutputTokens: 200,
-      responseMimeType: "application/json",
+      responseMimeType: "text/plain",
     },
   });
 
   if (!response.text) {
     throw new Error("Gemini returned an empty response");
   }
+
+  console.log(response.text, "<<<<<<");
 
   return {
     role: "assistant",

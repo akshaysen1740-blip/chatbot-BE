@@ -12,7 +12,7 @@ export class Planner {
       throw new Error("No message found");
     }
 
-    const question = currentMessage.message?.trim();
+    const question = currentMessage.content?.trim() || currentMessage.message?.trim();
 
     if (!question) {
       throw new Error("No question found");
@@ -48,7 +48,7 @@ export class Planner {
               type: "string",
             },
           },
-          required: [" "],
+          required: ["requiresTool"],
         },
       },
     });
