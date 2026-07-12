@@ -1,10 +1,14 @@
-import { ExecutionPlan } from "../../types/chat.types";
+import { ChatApiMessage, ExecutionPlan } from "../../types/chat.types";
 import { toolRegistry } from "./tool-registry";
 
 export class Executor {
-  async execute(plan: ExecutionPlan) {
+  async execute(plan: ExecutionPlan): Promise<ChatApiMessage> {
     if (!plan.toolName) {
       throw new Error("No tool selected.");
+    }
+
+    if (!plan.input) {
+      throw new Error("No tool input provided.");
     }
 
     const tool = toolRegistry.get(plan.toolName);

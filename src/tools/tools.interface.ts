@@ -1,6 +1,8 @@
-export interface Tool {
-    name: string;
-    description: string;
+import { ChatApiMessage, ChatRequestBody } from "../types/chat.types";
 
-    execute(input: any): Promise<any>;
+export interface Tool {
+  name: string;
+  description: string;
+
+  execute(input: ChatRequestBody): Promise<ChatApiMessage>;
 }

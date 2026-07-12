@@ -2,23 +2,17 @@ import { env } from "../config/env";
 import aiClient from "../config/gemini.client";
 import { executor } from "../controllers/chat/executor";
 import { planner } from "../controllers/chat/planner";
-import { ChatRequestBody } from "../types/chat.types";
+import { ChatApiMessage, ChatRequestBody } from "../types/chat.types";
 
 class ChatService {
-  async chat(body: ChatRequestBody) {
+  async chat(body: ChatRequestBody): Promise<ChatApiMessage> {
     /**
      * Step 1
      * Build a plan.
      */
 
     const plan = await planner.plan(body);
-
-    /**
-     * Step 2
-     * Does the planner
-     * need a tool?
-     */
-
+    console.log(plan, "15")
     if (plan.requiresTool) {
       return executor.execute(plan);
     } else {
@@ -27,10 +21,17 @@ class ChatService {
   }
 }
 
-async function genralPurposeResponse(body: any) {
+async function genralPurposeResponse(body: ChatRequestBody): Promise<ChatApiMessage> {
+  const currentMessage = body.messages.at(-1);
+  const prompt = currentMessage?.content?.trim() || currentMessage?.message?.trim();
+
+  if (!prompt) {
+    throw new Error("No message found");
+  }
+
   const response = await aiClient.models.generateContent({
     model: env.geminiModel,
-    contents: body.messages.at(-1).message,
+    contents: prompt,
     config: {
       systemInstruction: "You are a helpful assistant.",
       temperature: 0.2,
@@ -38,7 +39,11 @@ async function genralPurposeResponse(body: any) {
       responseMimeType: "application/json",
     },
   });
-  console.log("response", response);
+
+  if (!response.text) {
+    throw new Error("Gemini returned an empty response");
+  }
+
   return {
     role: "assistant",
     content: response.text,

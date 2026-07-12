@@ -13,9 +13,9 @@ import { buildRagPrompt, getSummarPrompt } from "../prompts/system.prompts";
 
 class RagTool implements Tool {
   name: string = "Rag";
-  description: string = "Fo Rag services";
+  description: string = "For Rag services";
 
-  async execute(body: any): Promise<any> {
+  async execute(body: ChatRequestBody): Promise<ChatApiMessage> {
     const rawMessages = body?.messages;
 
     if (!Array.isArray(rawMessages) || rawMessages.length === 0) {
@@ -68,17 +68,11 @@ class RagTool implements Tool {
     }
 
     return {
-      message: {
-        role: "assistant",
-        content: text,
-      },
-      sources: chunks.map((chunk) => ({
-        id: chunk.id,
-        pageNumber: chunk.pageNumber,
-        chunkIndex: chunk.chunkIndex,
-      })),
+      role: "assistant",
+      content: text,
     };
   }
+
   private normalizeIncomingMessage(
     message: IncomingMessage,
   ): ChatApiMessage | null {
@@ -153,7 +147,7 @@ class RagTool implements Tool {
 
     return {
       role: summary.role || "user",
-      content: summaryText,
+      content: summary.content || summaryText,
     };
   }
 }

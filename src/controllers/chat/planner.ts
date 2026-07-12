@@ -48,7 +48,7 @@ export class Planner {
               type: "string",
             },
           },
-          required: ["requiresTool"],
+          required: [" "],
         },
       },
     });
@@ -58,7 +58,6 @@ export class Planner {
     }
 
     const plan = JSON.parse(response.text);
-    console.log(plan , "plan");
     return {
       requiresTool: plan.requiresTool,
       toolName: plan.toolName,

@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { ChatRequestBody } from "../../types/chat.types";
+import { ApiResponse, ChatApiMessage, ChatRequestBody } from "../../types/chat.types";
 import { chatService } from "../../services/chat.service";
 
 export const chat = async (
@@ -7,17 +7,29 @@ export const chat = async (
   res: Response,
 ): Promise<Response | void> => {
   try {
-    const result = await chatService.chat(req.body);
-    return res.json(result);
+    const result = (await chatService.chat(req.body)) as ChatApiMessage;
+
+    const response: ApiResponse<ChatApiMessage> = {
+      statusCode: 200,
+      status: "success",
+      message: "Chat response generated successfully.",
+      data: result,
+    };
+
+    return res.status(response.statusCode).json(response);
   } catch (error: any) {
     const details = error?.message || error;
 
     console.error(details);
 
-    return res.status(500).json({
-      error: "Something went wrong",
-      details,
-    });
+    const response: ApiResponse<null> = {
+      statusCode: 500,
+      status: "error",
+      message: typeof details === "string" ? details : "Something went wrong",
+      data: null,
+    };
+
+    return res.status(response.statusCode).json(response);
   }
 };
 

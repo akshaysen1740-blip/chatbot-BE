@@ -9,6 +9,13 @@ export type ChatApiMessage = {
   content: string;
 };
 
+export interface ApiResponse<T> {
+  statusCode: number;
+  status: "success" | "error";
+  message: string;
+  data: T;
+}
+
 export type GeminiMessage = {
   role: "user" | "model";
   parts: Array<{
@@ -25,5 +32,5 @@ export interface ExecutionPlan {
 
   toolName?: string;
 
-  input?: unknown;
+  input?: ChatRequestBody;
 }
