@@ -12,7 +12,8 @@ const app = express();
 
 app.use(
   cors({
-    origin: ["http://localhost:5173", "http://localhost:5173", "https://mybot-green-rho.vercel.app"],
+    origin: ["https://mychatbot-ncpdaf70a-akshay-sens-projects-2deaba3d.vercel.app/" , "http://localhost:5173"],
+    credentials: true,
   }),
 );
 app.use(express.json());
