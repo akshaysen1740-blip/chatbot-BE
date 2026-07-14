@@ -1,7 +1,7 @@
 import "dotenv/config";
 import express from "express";
-import cors from "cors";
 import chatRoutes from "./routes/chatbot.routes";
+import { corsMiddleware, corsPreflightMiddleware } from "./middleware/cors";
 import uploadRoutes from "./routes/upload.routes";
 import { initializeDatabase } from "./db/connection";
 import { toolRegistry } from "./controllers/chat/tool-registry";
@@ -10,12 +10,8 @@ import { registerTools } from "./controllers/chat/register-tools";
 
 const app = express();
 
-app.use(
-  cors({
-    origin: ["https://mychatbot-ncpdaf70a-akshay-sens-projects-2deaba3d.vercel.app/" , "http://localhost:5173"],
-    credentials: true,
-  }),
-);
+app.use(corsMiddleware);
+app.use(corsPreflightMiddleware);
 app.use(express.json());
 app.use("/chat", chatRoutes);
 app.use("/upload", uploadRoutes);
@@ -29,8 +25,6 @@ async function startServer() {
   try {
     await initializeDatabase();
     registerTools();
-    let tools = toolRegistry.getAll();
-    console.log("tools", tools);
 
     app.listen(8000, () => {
       console.log("Server running on port 8000");
