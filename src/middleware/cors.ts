@@ -3,6 +3,7 @@ import cors from "cors";
 const allowedOrigins = [
   "https://mychatbot-lime-alpha.vercel.app",
   "http://localhost:5173",
+  "https://www.akshaychatbot.duckdns.org"
 ];
 
 const corsOptions = {
